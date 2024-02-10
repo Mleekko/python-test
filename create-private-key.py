@@ -1,6 +1,8 @@
-from common import *
-import qrcode
 import secrets
+
+import qrcode
+
+from common import *
 
 KEY_FILE = './private-key.txt'
 NETWORK_ID: int = OlympiaNetwork.MAINNET.value
@@ -23,9 +25,3 @@ else:
 qr = qrcode.QRCode()
 qr.add_data(account.address_string())
 qr.print_ascii()
-
-
-
-
-
-

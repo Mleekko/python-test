@@ -1,21 +1,17 @@
 import decimal
-from typing import Dict
-
-from astro_client import AstroClient
-from common import *
 from decimal import *
 
-
-from gateway_client import GatewayClient
-from caviar_client import CaviarClient
+from client.astro_client import AstroClient
+from client.gateway_client import GatewayClient
+from common import *
 
 NETWORK_ID: int = OlympiaNetwork.MAINNET.value
 
-KEY_FILE = './all-wallets.txt'
+WALLETS_FILE = './all-wallets.txt'
 
 all_wallets = []
 
-with open(KEY_FILE, 'r') as f:
+with open(WALLETS_FILE, 'r') as f:
     for full_line in f.readlines():
         line = full_line.strip()
         if len(line) > 0:
@@ -110,7 +106,6 @@ async def main():
 
     token_values.sort(reverse=True)
     TokenValue.print(token_values)
-
 
 
 asyncio.run(main())
