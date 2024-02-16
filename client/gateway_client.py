@@ -80,6 +80,7 @@ class GatewayClient:
                 # print(f"item: {item}\n")
                 info: ResourceInfo = ResourceInfo()
                 info.address = item['address']
+                info.symbol = '?'
                 info.total_supply = item['details']['total_supply']
                 for meta_item in item['metadata']['items']:
                     meta_item_key = meta_item['key']

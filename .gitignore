@@ -157,3 +157,4 @@ cython_debug/
 private-key.txt
 nonce.txt
 all-wallets.txt
+all-wallets.backup.txt

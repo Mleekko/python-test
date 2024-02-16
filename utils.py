@@ -1,18 +1,24 @@
 import dataclasses
 import decimal
 import json
+import sys
 from decimal import *
 
 from common import *
 
 
-def read_wallets(file: str) -> [str]:
-    wallets = []
-    with open(file, 'r') as f:
-        for full_line in f.readlines():
-            line = full_line.strip()
-            if len(line) > 0:
-                wallets.append(line)
+def read_wallets(file: str) -> dict[str, str]:
+    wallets: dict[str, str] = dict()
+    try:
+        with open(file, 'r') as f:
+            for full_line in f.readlines():
+                line = full_line.strip()
+                if len(line) > 0 and line.startswith('account_'):
+                    parts = line.split(None, 1)
+                    wallets[parts[0]] = parts[1].strip() if len(parts) > 1 else line
+    except FileNotFoundError:
+        print(f"Please create file \"{file}\" with your wallets, one wallet per line", file=sys.stderr)
+        exit(404)
     return wallets
 
 
@@ -28,6 +34,9 @@ def disp(num: decimal.Decimal) -> str:
 
 
 def precision(num: decimal.Decimal, n=1) -> decimal.Decimal:
+    if num.is_zero():
+        return num
+
     order = num.log10().__floor__()
     prec = n - order - 1
     power = decimal.Decimal(10.0 ** prec)
