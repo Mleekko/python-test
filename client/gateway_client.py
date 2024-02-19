@@ -3,7 +3,7 @@ from typing import Callable
 
 import httpx
 
-from model.gateway_model import ResourceInfo, PoolInfo, TokenBalance
+from model.gateway_model import ResourceInfo, PoolInfo, TokenBalance, ValidatorInfo
 
 
 class GatewayClient:
@@ -26,16 +26,10 @@ class GatewayClient:
         return data['gateway']['ledger_state']['epoch']
 
     async def submit_transaction(self, tx_hex: str) -> bool:
-        r = await self.session.post(self.gateway_url + 'transaction/submit', headers={
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        }, content=json.dumps({
+        data = await self.__do_post('transaction/submit', {
             "notarized_transaction_hex": tx_hex
-        }))
+        })
 
-        if self._debug:
-            print(f"Response: {r.text}\n")
-        data = r.json()
         return data['duplicate']
 
     async def get_balances(self, account: str) -> dict[str, str]:
@@ -54,15 +48,7 @@ class GatewayClient:
                     "cursor": cursor,
                     "at_ledger_state": {"state_version": state_version},
                 }
-            r = await self.session.post(self.gateway_url + 'state/entity/page/fungibles', headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            }, content=json.dumps(request_body))
-
-            if self._debug:
-                print(f"Response: {r.text}\n")
-
-            data = r.json()
+            data = await self.__do_post('state/entity/page/fungibles', request_body)
 
             cursor = data['next_cursor'] if 'next_cursor' in data else None
             state_version = data['ledger_state']['state_version']
@@ -86,8 +72,12 @@ class GatewayClient:
                     meta_item_key = meta_item['key']
                     if meta_item_key == 'symbol':
                         info.symbol = meta_item['value']['programmatic_json']['fields'][0]['value'].upper()
+                    elif meta_item_key == 'name' and info.symbol == '?':
+                        info.symbol = meta_item['value']['programmatic_json']['fields'][0]['value']
                     elif meta_item_key == 'pool':
                         info.pool = meta_item['value']['programmatic_json']['fields'][0]['value']
+                    elif meta_item_key == 'validator':
+                        info.validator = meta_item['value']['programmatic_json']['fields'][0]['value']
 
                 all_resources[info.address] = info
 
@@ -119,21 +109,38 @@ class GatewayClient:
 
         return all_pools
 
+    async def load_validators(self, validators: set[str]) -> dict[str, ValidatorInfo]:
+        data = await self.__do_post('state/validators/list', {})
+
+        all_validators: dict[str, ValidatorInfo] = dict()
+
+        for item in data['validators']['items']:
+            address: str = item['address']
+            if address in validators:
+                stake_unit_resource = item['state']['stake_unit_resource_address']
+                name = '???'
+                for meta_item in item['metadata']['items']:
+                    if meta_item['key'] == 'name':
+                        name = meta_item['value']['programmatic_json']['fields'][0]['value']
+                all_validators[address] = ValidatorInfo(address, stake_unit_resource, item['stake_vault']['balance'], name)
+        return all_validators
+
+    async def __do_post(self, url, request_body):
+        r = await self.session.post(self.gateway_url + url, headers={
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }, content=json.dumps(request_body))
+
+        if self._debug:
+            print(f"Response: {r.text}\n")
+        return r.json()
+
     async def __load_details(self, addresses: [str], data_consumer: Callable[[dict], None]):
         addresses_batches: list[list[str]] = [addresses[i:(i + 20)] for i in range(0, len(addresses), 20)]
         for address_batch in addresses_batches:
-            request_body = {
+            data = await self.__do_post('state/entity/details', {
                 "addresses": address_batch,
                 "aggregation_level": "Vault"
-            }
-            r = await self.session.post(self.gateway_url + 'state/entity/details', headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            }, content=json.dumps(request_body))
-
-            if self._debug:
-                print(f"Response: {r.text}\n")
-
-            data = r.json()
+            })
 
             data_consumer(data)

@@ -2,9 +2,6 @@ import dataclasses
 import decimal
 import json
 import sys
-from decimal import *
-
-from common import *
 
 
 def read_wallets(file: str) -> dict[str, str]:
@@ -22,15 +19,37 @@ def read_wallets(file: str) -> dict[str, str]:
     return wallets
 
 
-def pad(s: str, i: int) -> str:
-    if len(s) >= i:
+def pad(s: str, i: int, right=True) -> str:
+    length = len(s)
+
+    if length >= i:
         return s
 
-    return s + " " * (i - len(s))
+    if right:
+        return s + " " * (i - length)
+    else:
+        return (" " * (i - length)) + s
+
+
+SUFFIXES = ['', 'k', 'M', 'B', 'T', 'Q', 'S']
 
 
 def disp(num: decimal.Decimal) -> str:
-    return format(num, ',')
+    if num.is_zero():
+        return '0'
+
+    val = format(num, ',')
+    order = 0
+    while val.endswith(',000'):
+        val = val[0:val.rfind(',000')]
+        order += 1
+    if val.endswith('00'):
+        idx = val.rfind(',')
+        if idx > 0 and idx == val.find(','):
+            val = val[0:idx] + '.' + val[idx + 1:idx + 2]
+            order += 1
+
+    return val + SUFFIXES[order]
 
 
 def precision(num: decimal.Decimal, n=1) -> decimal.Decimal:
@@ -41,7 +60,11 @@ def precision(num: decimal.Decimal, n=1) -> decimal.Decimal:
     prec = n - order - 1
     power = decimal.Decimal(10.0 ** prec)
     res = decimal.Decimal((num * power).__round__() / power)
-    return res if prec > 0 else res.__round__()
+    return res if prec > 0 else decimal.Decimal(res.__round__())
+
+
+def decimals(num: decimal.Decimal, n=2) -> decimal.Decimal:
+    return num.quantize(decimal.Decimal('0.' + ('0' * n)))
 
 
 def to_json(obj):

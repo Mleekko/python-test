@@ -8,6 +8,7 @@ class ResourceInfo:
     symbol: str
     total_supply: str
     pool: str = None
+    validator: str = None
 
     def __init__(self):
         pass
@@ -54,3 +55,11 @@ class PoolInfo:
 
     def __repr__(self):
         return json.dumps(self.__json__(), indent=2)
+
+
+@dataclass
+class ValidatorInfo:
+    address: str
+    stake_unit_resource: str
+    stake_balance: str
+    name: str
