@@ -21,7 +21,7 @@ class AstroClient:
         json_data = r.text[start_idx:end_idx + 1]
         # print(f"json_data: {json_data}\n")
         data = json.loads(json_data)
-        tokens_data = data['state']['loaderData']['routes/_index']['tokens']
+        tokens_data = data['state']['loaderData']['routes/_app._index']['tokens']
 
         prices: dict[str, decimal.Decimal] = dict()
         symbols: dict[str, str] = dict()
