@@ -107,9 +107,10 @@ def print_token_values(token_values: list[TokenValue], pooled_balances: dict[str
         total_value += token_value.value
         pooled_amount = pooled_balances[token_value.rri] if token_value.rri in pooled_balances else decimal.Decimal(0)
         main_amount = token_value.amount - pooled_amount
-        pooled_str = f"+ {disp(precision(pooled_amount, 6))} " if pooled_amount > 0 else ''
+        pooled_str = f" {disp(precision(main_amount, 6))} + {disp(precision(pooled_amount, 6))} " if pooled_amount > 0 else ''
         print(f"{pad(token_value.symbol, 10)} = {pad(disp(token_value.value), 11)} "
-              f"({pad(disp(precision(main_amount, 6)), 10)} {pad(pooled_str, 12)}@{disp(token_value.price)})")
+              f"{pad('| '+pad(disp(precision(token_value.amount, 6)), 11) + ' @' + disp(token_value.price), 28)}"
+              f"{pooled_str}")
 
     total_staked = decimals(decimal.Decimal(sum(val.balance for val in staked_values)), 2)
     values = [
