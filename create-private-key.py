@@ -3,6 +3,7 @@ import secrets
 import qrcode
 
 from common import *
+from radix_engine_toolkit import *
 
 KEY_FILE = './private-key.txt'
 NETWORK_ID: int = OlympiaNetwork.MAINNET.value

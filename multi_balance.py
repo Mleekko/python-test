@@ -96,7 +96,7 @@ def print_validator_stakes(staked_values: list[AccountBalance], our_validators: 
     print(f"Validator stakes, XRD:")
     for value in staked_values:
         validator = our_validators[value.account]
-        print(f"{pad(validator.name, 20)} -> {pad(disp(precision(value.balance, 6)), 18)} [{value.account}]")
+        print(f"{pad(validator.name, 20)} -> {pad(disp(precision(value.balance, 6)), 18)} [{value.account}] - {validator.stake_unit_resource}")
     print("")
 
 

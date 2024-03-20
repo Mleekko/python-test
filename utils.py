@@ -58,8 +58,8 @@ def precision(num: decimal.Decimal, n=1) -> decimal.Decimal:
 
     order = num.log10().__floor__()
     prec = n - order - 1
-    power = decimal.Decimal(10.0 ** prec)
-    res = decimal.Decimal((num * power).__round__() / power)
+    power = decimal.Decimal("10") ** prec
+    res = decimal.Decimal(decimal.Decimal((num * power).__round__()) / power)
     return res if prec > 0 else decimal.Decimal(res.__round__())
 
 
