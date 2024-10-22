@@ -4,6 +4,7 @@ from decimal import *
 from radix_engine_toolkit import OlympiaNetwork
 
 from client.astro_client import AstroClient
+from client.caviar_client import CaviarClient
 from client.gateway_client import GatewayClient
 from common import *
 from model.balance_model import TokenValue, TokenAccountBalance, AccountBalance
@@ -53,6 +54,15 @@ def calc_pools(our_pools: dict[str, PoolInfo], resources: dict[str, ResourceInfo
                         if token_balance.resource in total_balances \
                         else bal
     return pooled_balances
+
+
+async def get_avg_prices() -> dict[str, decimal.Decimal]:
+    prices: dict[str, decimal.Decimal] = await CaviarClient().get_prices()
+    # cav_prices: dict[str, decimal.Decimal] = await CaviarClient().get_prices()
+    # for p in cav_prices:
+    #     prices[p] = (prices[p] + cav_prices[p]) / 2 if p in prices else cav_prices[p]
+
+    return prices
 
 
 def calc_staked_values(our_validators: dict[str, ValidatorInfo], resources: dict[str, ResourceInfo],
@@ -124,11 +134,13 @@ def print_token_values(token_values: list[TokenValue], pooled_balances: dict[str
     print(f"Total + Staked:    ~{pad(values[2], max_width, False)} XRD\n")
 
 
-def print_account_balances(account_balances: list[TokenAccountBalance]):
+def print_account_balances(account_balances: list[TokenAccountBalance], pool_unit_resources: dict[str, list[str]]):
     print(f"Account Balances:")
     for account_balance in account_balances:
         lines = '\n'.join(pad('', 10) + pad(all_wallets[b.account], 66) + '=' + disp(precision(b.balance, 10)) for b in account_balance.account_balances)
-        print(f"({account_balance.rri}):       {pad(disp(precision(account_balance.amount, 10)), 13)} {account_balance.symbol}\n{lines}\n")
+        pooled_resources = pool_unit_resources[account_balance.rri] if account_balance.rri in pool_unit_resources else []
+        print(f"({account_balance.rri}):       {pad(disp(precision(account_balance.amount, 10)), 13)} {account_balance.symbol}"
+              f"{(' ' + str(pooled_resources) if len(pooled_resources) > 0 else '') }\n{lines}\n")
 
 
 async def main():
@@ -159,6 +171,17 @@ async def main():
     excluded_resources: set[str] = set()
     pooled_balances = calc_pools(our_pools, resources, total_balances, excluded_resources)  # type: dict[str, decimal.Decimal]
 
+    pool_unit_resources: dict[str, list[str]] = dict()
+    for pool_addr in our_pools:
+        pool: PoolInfo = our_pools[pool_addr]
+        pool_unit_resource = pool.pool_unit_resource
+        if pool_unit_resource in resources and resources[pool_unit_resource].pool == pool_addr:
+            pool_resources = []
+            for token_balance in pool.balances:  # type: TokenBalance
+                if token_balance.amount != "0":
+                    pool_resources.append(resources[token_balance.resource].symbol if token_balance.resource in resources else token_balance.resource)
+            pool_unit_resources[pool_unit_resource] = pool_resources
+
     print(f"Loading Pooled resources...")
     res_to_load = list(pooled_balances.keys() - resources.keys())
     if len(res_to_load) > 0:
@@ -166,8 +189,7 @@ async def main():
         resources.update(resources2)
 
     print(f"Loading prices...")
-    astro = AstroClient()
-    prices, symbols = await astro.get_prices()  # type: (dict[str, decimal.Decimal], dict[str, str])
+    prices: dict[str, decimal.Decimal] = await get_avg_prices()
 
     our_validators: dict[str, ValidatorInfo] = dict()
     if len(validators) > 0:
@@ -199,7 +221,7 @@ async def main():
         bal.account_balances.sort(reverse=True)
     token_account_balances_list.sort(reverse=True)
 
-    print_account_balances(token_account_balances_list)
+    print_account_balances(token_account_balances_list, pool_unit_resources)
     print_pooled_balances(pooled_balances, resources, prices)
     print_validator_stakes(staked_values, our_validators)
     print_token_values(token_values, pooled_balances, staked_values)

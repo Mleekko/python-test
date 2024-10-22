@@ -1,5 +1,5 @@
 import json
-from typing import Callable
+from typing import Callable, Any
 
 import httpx
 
@@ -32,7 +32,7 @@ class GatewayClient:
 
         return data['duplicate']
 
-    async def get_balances(self, account: str) -> dict[str, str]:
+    async def get_balances(self, account: str, include_non_fungibles=False) -> dict[str, str]:
         balances = dict()
 
         cursor = None
@@ -124,6 +124,16 @@ class GatewayClient:
                         name = meta_item['value']['programmatic_json']['fields'][0]['value']
                 all_validators[address] = ValidatorInfo(address, stake_unit_resource, item['stake_vault']['balance'], name)
         return all_validators
+
+    async def get_entity(self, address: str) -> dict[str, Any]:
+        entity = dict()
+
+        def convert(data: dict):
+            entity.update(data['items'][0])
+
+        await self.__load_details([address], convert)
+
+        return entity
 
     async def __do_post(self, url, request_body):
         r = await self.session.post(self.gateway_url + url, headers={

@@ -20,7 +20,8 @@ class CaviarClient:
         for resource in data['data']:
             price_to_xrd = data['data'][resource]['price_to_xrd']
             mid_price = price_to_xrd['mid']
-            if mid_price is not None and price_to_xrd['bid'] is not None:
+            bid_price = price_to_xrd['bid']
+            if mid_price is not None and bid_price is not None and decimal.Decimal(bid_price) > 0:
                 prices[resource] = decimal.Decimal(mid_price)
 
         return prices

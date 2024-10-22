@@ -154,6 +154,7 @@ cython_debug/
 
 .idea/
 
+.backups
 private-key.txt
 nonce.txt
 all-wallets.txt
